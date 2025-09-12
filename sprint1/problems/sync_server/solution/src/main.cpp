@@ -105,7 +105,7 @@ StringResponse HandleRequest(StringRequest&& req) {
     }
     else {
         // Любой другой метод -> 405 Method Not Allowed
-        constexpr std::string_view body = "Invalid method."sv; // длина 14
+        constexpr std::string_view body = "Invalid method"sv; // длина 14
         StringResponse response(http::status::method_not_allowed, req.version());
         response.set(http::field::content_type, ContentType::TEXT_HTML);
         response.set(http::field::allow, "GET, HEAD");
