@@ -27,20 +27,22 @@ public:
     // Этот метод может быть вызван из произвольного потока
     void OrderHotDog(HotDogHandler handler) {
         try {
-            // Получаем ингредиенты
+            // Получаем уникальные id сразу, атомарно
+            int bread_id = next_id_.fetch_add(1, std::memory_order_relaxed);
+            int sausage_id = next_id_.fetch_add(1, std::memory_order_relaxed);
             int hotdog_id = next_id_.fetch_add(1, std::memory_order_relaxed);
 
-            auto bread = store_.GetBread();
-            auto sausage = store_.GetSausage();
+            // Создаём ингредиенты напрямую с id, минуя внутренний счётчик Store
+            auto bread = std::make_shared<Bread>(bread_id);
+            auto sausage = std::make_shared<Sausage>(sausage_id);
 
             // Состояние готовки ингредиентов
             auto bread_done = std::make_shared<std::atomic_bool>(false);
             auto sausage_done = std::make_shared<std::atomic_bool>(false);
 
             auto handler_ptr = std::make_shared<HotDogHandler>(std::move(handler));
-
-            // Функция проверки готовности хот-дога
             auto check_completion = std::make_shared<std::function<void()>>();
+
             *check_completion = [bread, sausage, bread_done, sausage_done, handler_ptr, hotdog_id, check_completion]() {
                 if (*bread_done && *sausage_done) {
                     try {
@@ -99,6 +101,7 @@ public:
             handler(Result<HotDog>(std::make_exception_ptr(e)));
         }
     }
+
 
 private:
     net::io_context& io_;
