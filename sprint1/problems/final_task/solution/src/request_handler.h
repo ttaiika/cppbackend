@@ -48,29 +48,25 @@ public:
 
             //если существует карта с таким id
             if (map != nullptr) {
-                return SendJsonResponse(req, send, http::status::ok, json::serialize(ToJson(*map)));
+                return SendJsonResponse(req, send, http::status::ok, json::serialize(MakeMapJson(*map)));
             } else {
                 return SendJsonResponse(req, send, http::status::not_found, R"({"code":"mapNotFound","message":"Map not found"})");
             }
         }
         
         if (target == "/api/v1/maps") {
-            return SendJsonResponse(req, send, http::status::ok, json::serialize(ToJsonMaps()));
+            return SendJsonResponse(req, send, http::status::ok, json::serialize(MakeMapsJson()));
         } else {
             return SendJsonResponse(req, send, http::status::bad_request, R"({"code":"badRequest","message":"Bad request"})");
         }
     }
 
 private:
-    json::object ToJson(const model::Road& road);
-
-    json::object ToJson(const model::Building& b);
-
-    json::object ToJson(const model::Office& o);
-
-    json::object ToJson(const model::Map& map);
-
-    json::array ToJsonMaps();
+    json::object MakeRoadJson(const model::Road& road);
+    json::object MakeBuildingJson(const model::Building& b);
+    json::object MakeOfficeJson(const model::Office& o);
+    json::object MakeMapJson(const model::Map& map);
+    json::array MakeMapsJson();
 
     template <typename Body, typename Send>
     void SendJsonResponse(http::request<Body> const& req, Send&& send, http::status status, const std::string& body) {

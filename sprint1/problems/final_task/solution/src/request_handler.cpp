@@ -2,7 +2,7 @@
 
 namespace http_handler {
 
-json::object RequestHandler::ToJson(const model::Road& road) {
+json::object RequestHandler::MakeRoadJson(const model::Road& road) {
     json::object j;
     j["x0"] = road.GetStart().x;
     j["y0"] = road.GetStart().y;
@@ -11,7 +11,7 @@ json::object RequestHandler::ToJson(const model::Road& road) {
     return j;
 }
 
-json::object RequestHandler::ToJson(const model::Building& building) {
+json::object RequestHandler::MakeBuildingJson(const model::Building& building) {
     auto b = building.GetBounds();
     return {
         {"x", b.position.x},
@@ -21,7 +21,7 @@ json::object RequestHandler::ToJson(const model::Building& building) {
     };
 }
 
-json::object RequestHandler::ToJson(const model::Office& o) {
+json::object RequestHandler::MakeOfficeJson(const model::Office& o) {
     return {
         {"id", *o.GetId()},
         {"x", o.GetPosition().x},
@@ -31,7 +31,7 @@ json::object RequestHandler::ToJson(const model::Office& o) {
     };
 }
 
-json::object RequestHandler::ToJson(const model::Map& map) {
+json::object RequestHandler::MakeMapJson(const model::Map& map) {
     json::object j;
     j["id"] = *map.GetId();
     j["name"] = map.GetName();
@@ -39,35 +39,35 @@ json::object RequestHandler::ToJson(const model::Map& map) {
     j["roads"] = json::array();
     auto& roads = j["roads"].as_array();
     for (const auto& r : map.GetRoads()) {
-        roads.push_back(ToJson(r));
+        roads.push_back(MakeRoadJson(r));
     }
 
     j["buildings"] = json::array();
     auto& buildings = j["buildings"].as_array();
     for (const auto& b : map.GetBuildings()) {
-        buildings.push_back(ToJson(b));
+        buildings.push_back(MakeBuildingJson(b));
     }
 
     j["offices"] = json::array();
     auto& offices = j["offices"].as_array();
     for (const auto& o : map.GetOffices()) {
-        offices.push_back(ToJson(o));
+        offices.push_back(MakeOfficeJson(o));
     }
 
     return j;
 }
 
-json::array RequestHandler::ToJsonMaps() {
-        json::array arr;
-        for (const auto& m : game_.GetMaps()) {
-            json::object obj;
-            obj["id"] = *m.GetId();
-            obj["name"] = m.GetName();
+json::array RequestHandler::MakeMapsJson() {
+    json::array arr;
+    for (const auto& m : game_.GetMaps()) {
+        json::object obj;
+        obj["id"] = *m.GetId();
+        obj["name"] = m.GetName();
 
-            arr.push_back(obj);
-        }
+        arr.push_back(obj);
+    }
 
-        return arr;
+    return arr;
 }
 
 }  // namespace http_handler
