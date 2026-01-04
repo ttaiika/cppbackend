@@ -12,7 +12,7 @@
 
 using namespace std::literals;
 
-#define LOG(...) Logger::GetInstance().Log(VA_ARGS)
+#define LOG(...) Logger::GetInstance().Log(__VA_ARGS__)
 
 class Logger {
     auto GetTime() const {
@@ -70,7 +70,6 @@ private:
 
 using namespace std::literals;
 
-//#define LOG(...) Logger::GetInstance().Log(VA_ARGS)
 #define LOG(...) Logger::GetInstance().Log(__VA_ARGS__)
 
 class Logger {
@@ -155,6 +154,7 @@ private:
         current_date_ = date_str;
     }
 
+private:
     std::optional<std::chrono::system_clock::time_point> manual_ts_;
     std::ofstream ofs_;
     std::string current_date_;
