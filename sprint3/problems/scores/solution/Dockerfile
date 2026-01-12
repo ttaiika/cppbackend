@@ -6,20 +6,22 @@ RUN apt update && \
       python3-pip \
       cmake \
     && \
-    pip3 install conan==1.*
+    pip3 install conan==1.59.0
 
-# Запуск conan как раньше
+# Запуск conan
 COPY conanfile.txt /app/
 RUN mkdir /app/build && cd /app/build && \
     conan install .. --build=missing -s build_type=Release -s compiler.libcxx=libstdc++11
 
-# Копируем исходный код
+# Копируем ВСЕ исходные файлы
 COPY ./src /app/src
+COPY ./tests /app/tests
 COPY CMakeLists.txt /app/
 
+# Сборка проекта с тестами
 RUN cd /app/build && \
-    cmake -DCMAKE_BUILD_TYPE=Release .. && \
-    cmake --build .
+    cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTS=ON .. && \
+    cmake --build . --target game_server
 
 # Второй контейнер в том же докерфайле
 FROM ubuntu:22.04 as run
@@ -28,12 +30,11 @@ FROM ubuntu:22.04 as run
 RUN groupadd -r www && useradd -r -g www www
 USER www
 
-# Скопируем приложение со сборочного контейнера в директорию /app.
+# Скопируем приложение со сборочного контейнера
 COPY --from=build /app/build/bin/game_server /app/
 COPY ./data /app/data
 COPY ./static /app/static       
 EXPOSE 8080
 
-# ENTRYPOINT для команды, CMD для дефолтных аргументов
-ENTRYPOINT ["/app/game_server", "--config-file", "/app/data/config.json", "--www-root", "/app/static"]
-CMD ["--tick-period", "50"]
+ENTRYPOINT ["/app/game_server"]
+CMD ["/app/data/config.json"]

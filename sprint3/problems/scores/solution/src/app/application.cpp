@@ -4,16 +4,11 @@
 
 namespace json = boost::json;
 
-// Обновленный конструктор Application
 Application::Application(const std::filesystem::path& config)
     : manual_ticker_(true) {
-    // Используем обновленную LoadGame, которая возвращает все необходимые данные
     auto result = json_loader::LoadGame(config);
-    
-    // Перемещаем игру
     game_ = std::move(result.game);
     
-    // Сохраняем extra_data и конфигурацию лута
     extra_data_ = std::move(result.extra_data);
     loot_config_ = result.loot_config;
 }

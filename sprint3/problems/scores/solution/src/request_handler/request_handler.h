@@ -33,7 +33,6 @@ public:
     RequestHandler(const RequestHandler&) = delete;
     RequestHandler& operator=(const RequestHandler&) = delete;
 
-    // Добавить этот метод
     void StartAutoTick(std::chrono::milliseconds period) {
         api_.StartAutoTick(period);
     }

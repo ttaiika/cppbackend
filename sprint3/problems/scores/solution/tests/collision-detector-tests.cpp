@@ -1,15 +1,14 @@
 #define _USE_MATH_DEFINES
 #include <catch2/catch_test_macros.hpp>
-#include <catch2/matchers/catch_matchers_floating_point.hpp>  // Добавьте этот include
+#include <catch2/matchers/catch_matchers_floating_point.hpp>  
 
 #include <cmath>
 #include <limits>
 
 #include "../src/collision_detector.h"
 
-// Используйте правильные namespace для Catch2 v3
 using namespace Catch;
-using namespace Catch::Matchers;  // Это теперь должно работать
+using namespace Catch::Matchers;  
 
 using namespace collision_detector;
 

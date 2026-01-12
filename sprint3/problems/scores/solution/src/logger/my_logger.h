@@ -34,7 +34,7 @@ class Logger {
         return oss.str();
     }
 
-    // Для имени файла возьмите дату с форматом "%Y_%m_%d"
+    // Для имени файла возьмем дату с форматом "%Y_%m_%d"
     std::string GetFileTimeStamp() const {
         const auto now = GetTime();
         const auto t_c = std::chrono::system_clock::to_time_t(now);

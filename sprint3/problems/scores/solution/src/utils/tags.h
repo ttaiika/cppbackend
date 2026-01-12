@@ -6,7 +6,7 @@ namespace tags {
     struct Player {};
     struct Map {};
     struct Dog {};
-    //struct Office {};
+    struct Office {};
     struct Road {};
     struct Building {};
 }

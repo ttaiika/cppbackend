@@ -44,13 +44,11 @@ GameLoadResult LoadGame(const std::filesystem::path& json_path) {
     // Создаем extra_data для хранения полного описания lootTypes
     auto extra_data = std::make_shared<extra_data::MapExtraData>();
     
-    // Загружаем карты с поддержкой лута
     AddMapsToGame(game, extra_data, value, loot_config);
     
     return {std::move(game), std::move(extra_data), loot_config};
 }
 
-// Добавляем карты в игру с поддержкой лута
 void AddMapsToGame(model::Game& game, 
                    std::shared_ptr<extra_data::MapExtraData> extra_data,
                    const json::value& value,
@@ -75,7 +73,6 @@ void AddMapsToGame(model::Game& game,
     }
 }
 
-// Добавляем карту в игру с поддержкой лута
 void AddMapToGame(model::Game& game,
                   std::shared_ptr<extra_data::MapExtraData> extra_data,
                   const json::value& item,
@@ -116,7 +113,6 @@ void AddMapToGame(model::Game& game,
     game.AddMap(std::move(map));
 }
 
-// добавляем на карту дороги 
 void AddRoadsToMap(model::Map& map, const json::object& map_obj) {
     json::array roads = map_obj.at("roads").as_array();
     for (const auto& road : roads) {
@@ -135,7 +131,6 @@ void AddRoadsToMap(model::Map& map, const json::object& map_obj) {
     }
 }
 
-// добавляем на карту здания
 void AddBuildingsToMap(model::Map& map, const json::object& map_obj) {
     json::array buildings = map_obj.at("buildings").as_array();
     for (const auto& build : buildings) {
@@ -151,7 +146,6 @@ void AddBuildingsToMap(model::Map& map, const json::object& map_obj) {
     }
 }
 
-// добавляем на карту офисы 
 void AddOfficesToMap(model::Map& map, const json::object& map_obj) {
     json::array offices = map_obj.at("offices").as_array();
     for (const auto& off : offices) {

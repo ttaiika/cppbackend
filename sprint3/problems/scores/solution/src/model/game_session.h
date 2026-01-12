@@ -93,7 +93,6 @@ private:
     void AddRandomLoot();
     unsigned GetLootersCount() const;  // Количество мародёров (собак)
 
-    // Методы для обработки коллизий
     std::vector<DogMovement> RecordDogMovements(double dt);
     void ProcessCollisions(const std::vector<DogMovement>& movements);
     std::vector<CollisionEvent> FindItemCollisions(const std::vector<DogMovement>& movements);

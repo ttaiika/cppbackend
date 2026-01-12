@@ -13,7 +13,7 @@ constexpr double EPSILON = 1e-9;
 
 // Ширина объектов для коллизий
 constexpr double DOG_WIDTH = 0.6;
-constexpr double ITEM_WIDTH = 0.0;    // Предметы - точка
+constexpr double ITEM_WIDTH = 0.0; 
 constexpr double OFFICE_WIDTH = 0.5;
 
 // Эффективные радиусы сбора
@@ -102,7 +102,6 @@ collision_detector::Gatherer GameSession::ItemCollisionProvider::GetGatherer(siz
     };
 }
 
-// Реализация OfficeCollisionProvider
 GameSession::OfficeCollisionProvider::OfficeCollisionProvider(
     const std::vector<DogMovement>& movements,
     const std::vector<model::Office>& offices)

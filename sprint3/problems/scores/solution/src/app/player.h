@@ -11,7 +11,7 @@
 #include "model/dog.h"
 #include "utils/tagged.h" 
 
-class GameSession; // forward-declare, include in cpp if needed
+class GameSession;
 
 namespace detail {
 struct TokenTag {};
@@ -22,7 +22,6 @@ using Token = util::Tagged<std::string, detail::TokenTag>;
 class PlayerTokens {
 public:
     Token GetToken() const {
-        // Получаем два 64-разрядных числа
         uint64_t num1 = generator1_();
         uint64_t num2 = generator2_();
 

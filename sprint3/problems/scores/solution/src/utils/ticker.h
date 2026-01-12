@@ -2,10 +2,10 @@
 
 #include <boost/asio.hpp>
 
-#include <memory>      // std::enable_shared_from_this, std::shared_ptr
-#include <functional>  // std::function
-#include <chrono>      // std::chrono::milliseconds, steady_clock
-#include <cassert>     // assert
+#include <memory>      
+#include <functional>  
+#include <chrono>      
+#include <cassert>     
 
 namespace net = boost::asio;
 namespace sys = boost::system;

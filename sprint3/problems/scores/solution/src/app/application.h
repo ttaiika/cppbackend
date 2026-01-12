@@ -39,7 +39,6 @@ public:
 
     void Tick(std::chrono::milliseconds ms);
 
-    // Новые методы для работы с лутом
     const extra_data::MapExtraData* GetExtraData() const {
         return extra_data_.get();
     }
@@ -48,7 +47,6 @@ public:
         return loot_config_;
     }
 
-    // Найти сессию по map_id
     std::shared_ptr<GameSession> FindSession(const model::Map::Id& map_id) const {
         auto sessions = game_.GetSessions();
         for (const auto& session : sessions) {
