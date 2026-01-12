@@ -32,7 +32,7 @@ model::Game LoadGame(const std::filesystem::path& json_path) {
 
     AddMapsToGame(game, value);
 
-    return std::move(game);
+    return game;
 }
 
 void AddMapsToGame(model::Game& game, const json::value& value) {
@@ -46,13 +46,13 @@ void AddMapsToGame(model::Game& game, const json::value& value) {
 
     // получаем массив карт
     json::array maps = obj["maps"].as_array();
-    for (auto& item : maps) {
+    for (const auto& item : maps) {
         AddMapToGame(game, item, default_speed);
     }
 }
 
 void AddMapToGame(model::Game& game, const boost::json::value& item, double default_speed) {
-    auto& map_obj = item.as_object();
+    const auto& map_obj = item.as_object();
 
     std::string id = map_obj.at("id").as_string().c_str();
     std::string name = map_obj.at("name").as_string().c_str();
@@ -74,32 +74,31 @@ void AddMapToGame(model::Game& game, const boost::json::value& item, double defa
 // добавляем на карту дороги
 void AddRoadsToMap(model::Map& map, const json::object& map_obj) {
     json::array roads = map_obj.at("roads").as_array();
-    for (auto& road : roads) {
+    for (const auto& road : roads) {
         auto& road_obj = road.as_object();
-        auto x0 = static_cast<int>(road_obj["x0"].as_int64());
-        auto y0 = static_cast<int>(road_obj["y0"].as_int64());
+        auto x0 = static_cast<int>(road_obj.at("x0").as_int64());
+        auto y0 = static_cast<int>(road_obj.at("y0").as_int64());
         if (road_obj.contains("x1")) {
-            auto x1 = static_cast<int>(road_obj["x1"].as_int64());
+            auto x1 = static_cast<int>(road_obj.at("x1").as_int64());
             model::Road r(model::Road::HORIZONTAL, {x0, y0}, x1);
             map.AddRoad(r);
         } else {
-            auto y1 = static_cast<int>(road_obj["y1"].as_int64());
+            auto y1 = static_cast<int>(road_obj.at("y1").as_int64());
             model::Road r(model::Road::VERTICAL, {x0, y0}, y1);
             map.AddRoad(r);
         }
     }
 }
 
-
 // добавляем на карту здания
 void AddBuildingsToMap(model::Map& map, const json::object& map_obj) {
     json::array buildings = map_obj.at("buildings").as_array();
-    for (auto& build : buildings) {
-        auto& build_obj = build.as_object();
-        auto x = static_cast<int>(build_obj["x"].as_int64());
-        auto y = static_cast<int>(build_obj["y"].as_int64());
-        auto w = static_cast<int>(build_obj["w"].as_int64());
-        auto h = static_cast<int>(build_obj["h"].as_int64());
+    for (const auto& build : buildings) {
+        const auto& build_obj = build.as_object();
+        auto x = static_cast<int>(build_obj.at("x").as_int64());
+        auto y = static_cast<int>(build_obj.at("y").as_int64());
+        auto w = static_cast<int>(build_obj.at("w").as_int64());
+        auto h = static_cast<int>(build_obj.at("h").as_int64());
 
         model::Building building(model::Rectangle{ {x, y}, {w, h} });
 
@@ -107,17 +106,17 @@ void AddBuildingsToMap(model::Map& map, const json::object& map_obj) {
     }
 }
 
-
 // добавляем на карту офисы
 void AddOfficesToMap(model::Map& map, const json::object& map_obj) {
     json::array offices = map_obj.at("offices").as_array();
-    for (auto& off : offices) {
-        auto& of = off.as_object();
-        auto id = of["id"].as_string().c_str();
-        int x = of["x"].as_int64();
-        int y = of["y"].as_int64();
-        int offsetX = of["offsetX"].as_int64();
-        int offsetY = of["offsetY"].as_int64();
+    for (const auto& off : offices) {
+        const auto& of = off.as_object();
+
+        auto id = of.at("id").as_string().c_str();
+        int x = of.at("x").as_int64();
+        int y = of.at("y").as_int64();
+        int offsetX = of.at("offsetX").as_int64();
+        int offsetY = of.at("offsetY").as_int64();
 
         model::Office office(model::Office::Id{id}, {x, y}, {offsetX, offsetY});
         map.AddOffice(office);

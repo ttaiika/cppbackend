@@ -75,12 +75,15 @@ ApiHandler::Endpoint ApiHandler::RouteRequest(const std::string& target, std::st
 // Поиск собаки в сессии
 model::Dog* ApiHandler::FindDogInSession(std::shared_ptr<GameSession> session, uint32_t dog_id) {
     const auto& dogs = session->GetDogs();
-    for (const auto& dog_ptr : dogs) {
-        if (dog_ptr && dog_ptr->GetId() == dog_id) {
-            return dog_ptr.get();
+    auto it = std::find_if(
+        dogs.begin(),
+        dogs.end(),
+        [&](const auto& dog_ptr) {
+            return dog_ptr && dog_ptr->GetId() == dog_id;
         }
-    }
-    return nullptr;
+    );
+
+    return it != dogs.end() ? it->get() : nullptr;
 }
 
 // Применение движения

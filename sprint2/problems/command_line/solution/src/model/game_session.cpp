@@ -146,11 +146,17 @@ const model::Road* GameSession::FindCurrentRoad(
     
     // Если собака на перекрестке, выбираем дорогу по направлению движения
     if (candidate_roads.size() > 1) {
-        for (const auto* road : candidate_roads) {
-            if ((!IsNearlyZero(speed.x) && road->IsHorizontal()) ||
-                (!IsNearlyZero(speed.y) && !road->IsHorizontal())) {
-                return road;
+        auto it = std::find_if(
+            candidate_roads.begin(),
+            candidate_roads.end(),
+            [&](const model::Road* road) {
+                return (!IsNearlyZero(speed.x) && road->IsHorizontal()) ||
+                   (!IsNearlyZero(speed.y) && !road->IsHorizontal());
             }
+        );
+
+        if (it != candidate_roads.end()) {
+            return *it;
         }
     }
     
