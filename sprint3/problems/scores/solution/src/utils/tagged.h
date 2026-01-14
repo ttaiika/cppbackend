@@ -25,7 +25,7 @@ namespace util {
  * Person p1{name, address}; // OK
  * Person p2{address, name}; // Ошибка, Address и Name - разные типы
  */
- 
+
 template <typename Value, typename Tag>
 class Tagged {
 public:

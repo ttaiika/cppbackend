@@ -400,14 +400,13 @@ void ApiHandler::HandleJoin(const http::request<Body>& req, Send&& send) {
 
     try {
         auto player = app_.JoinGame(map_id, user_name);
+        
+        json::object response{
+            {"authToken", *player->GetToken()},
+            {"playerId", player->GetDog().GetId()}
+        };
 
-        std::ostringstream out;
-        out << "{"
-            << "\"authToken\":\"" << *player->GetToken() << "\","
-            << "\"playerId\":" << player->GetDog().GetId()
-            << "}";
-
-        SendJsonResponse(req, send, http::status::ok, out.str());
+        SendJsonResponse(req, send, http::status::ok, json::serialize(response));
     } catch (const std::exception& e) {
         SendErrorResponse(req, send, http::status::bad_request,
             "invalidArgument", e.what());
@@ -437,19 +436,17 @@ void ApiHandler::HandlePlayers(const http::request<Body>& req, Send&& send) {
     auto map_id = player->GetSession()->GetMapId();
     auto others = app_.GetPlayers().GetPlayersOnMap(map_id);
 
-    std::ostringstream out;
-    out << "{";
-
-    for (size_t i = 0; i < others.size(); ++i) {
-        auto& p = others[i];
+    // ИСПРАВЛЕНО: используем boost::json
+    json::object players_json;
+    for (const auto& p : others) {
         const auto& dog = p->GetDog();
-        out << "\"" << dog.GetId() << "\": {\"name\": \"" << dog.GetName() << "\"}";
-        if (i + 1 < others.size()) out << ",\n";
+        json::object player_info{
+            {"name", dog.GetName()}
+        };
+        players_json[std::to_string(dog.GetId())] = player_info;
     }
 
-    out << "}";
-
-    SendJsonResponse(req, send, http::status::ok, out.str());
+    SendJsonResponse(req, send, http::status::ok, json::serialize(players_json));
 }
 
 template <typename Body, typename Send>
@@ -466,69 +463,58 @@ void ApiHandler::HandleState(const http::request<Body>& req, Send&& send) {
     auto session = player->GetSession();
     const auto& dogs = session->GetDogs();
     const auto& loot_objects = session->GetLootObjects();
-
-    std::ostringstream out;
-    out << std::fixed << std::setprecision(18);  
-
-    out << "{\n";
-    out << "  \"players\": {\n";
-
-    bool first_dog = true;
+    
+    // Создаем JSON для игроков
+    json::object players_json;
     for (const auto& dog_ptr : dogs) {
         if (!dog_ptr) continue;
 
         const auto& dog = *dog_ptr;
         
-        if (!first_dog) {
-            out << ",\n";
-        }
-        first_dog = false;
-
-        out << "    \"" << dog.GetId() << "\": {\n"
-            << "      \"pos\": [" << dog.GetPosition().x 
-            << ", " << dog.GetPosition().y << "],\n"
-            << "      \"speed\": [" << dog.GetSpeed().x 
-            << ", " << dog.GetSpeed().y << "],\n"
-            << "      \"dir\": \"" << DirectionToString(dog.GetDirection()) << "\",\n"
-            << "      \"bag\": [";
+        json::array pos_array{dog.GetPosition().x, dog.GetPosition().y};
+        json::array speed_array{dog.GetSpeed().x, dog.GetSpeed().y};
         
-        const auto& bag_items = dog.GetBagItems();
-        for (size_t i = 0; i < bag_items.size(); ++i) {
-            const auto& item = bag_items[i];
-            out << "{\"id\": " << item.item_id 
-                << ", \"type\": " << item.type << "}";
-            if (i + 1 < bag_items.size()) {
-                out << ", ";
-            }
+        // Создаем массив предметов в сумке
+        json::array bag_array;
+        for (const auto& item : dog.GetBagItems()) {
+            json::object item_json{
+                {"id", item.item_id},
+                {"type", item.type}
+            };
+            bag_array.push_back(item_json);
         }
-
-        out << "],\n"
-            << "      \"score\": " << dog.GetScore() << "\n" 
-            << "    }";
+        
+        json::object dog_json{
+            {"pos", pos_array},
+            {"speed", speed_array},
+            {"dir", DirectionToString(dog.GetDirection())},
+            {"bag", bag_array},
+            {"score", dog.GetScore()}
+        };
+        
+        players_json[std::to_string(dog.GetId())] = dog_json;
     }
-
-    out << "\n  },\n";
     
-    out << "  \"lostObjects\": {\n";
-    
-    bool first_loot = true;
+    // Создаем JSON для потерянных объектов
+    json::object lost_objects_json;
     for (const auto& [loot_id, loot_obj] : loot_objects) {
-        if (!first_loot) {
-            out << ",\n";
-        }
-        first_loot = false;
+        json::array pos_array{loot_obj.x, loot_obj.y};
         
-        out << "    \"" << *loot_obj.id << "\": {\n"
-            << "      \"type\": " << loot_obj.type << ",\n"
-            << "      \"pos\": [" << loot_obj.x 
-            << ", " << loot_obj.y << "]\n"
-            << "    }";
+        json::object loot_json{
+            {"type", loot_obj.type},
+            {"pos", pos_array}
+        };
+        
+        lost_objects_json[std::to_string(*loot_obj.id)] = loot_json;
     }
     
-    out << "\n  }\n";
-    out << "}\n";
-    
-    SendJsonResponse(req, send, http::status::ok, out.str());
+    // Собираем итоговый JSON
+    json::object state_json{
+        {"players", players_json},
+        {"lostObjects", lost_objects_json}
+    };
+
+    SendJsonResponse(req, send, http::status::ok, json::serialize(state_json));
 }
 
 template <typename Body, typename Send>
