@@ -7,6 +7,6 @@ namespace fs = std::filesystem;
 
 bool IsSubPath(fs::path path, fs::path base);
 
-std::string UrlDecode(const std::string &url);
+std::string UrlDecode(const std::string &s);
 
 }; // namespace util

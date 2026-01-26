@@ -112,7 +112,10 @@ StringResponse ApiHandler::PlayerJoinRequest() {
 }
 
 StringResponse ApiHandler::PlayerListRequest() {
-  if (!(m_req.method() == http::verb::get || m_req.method() == http::verb::head)) {
+  const bool is_allowed_method = (m_req.method() == http::verb::get || 
+                                  m_req.method() == http::verb::head);
+  
+  if (!is_allowed_method) {
     return MakeJsonResponse(http::status::method_not_allowed,
                             JsAnswer("invalidMethod", "Invalid method"),
                             CacheControl::NO_CACHE,
@@ -136,7 +139,10 @@ StringResponse ApiHandler::PlayerListRequest() {
 }
 
 StringResponse ApiHandler::GetGameState() {
-  if (!(m_req.method() == http::verb::get || m_req.method() == http::verb::head)) {
+  const bool is_allowed_method = (m_req.method() == http::verb::get || 
+                                  m_req.method() == http::verb::head);
+  
+  if (!is_allowed_method) {
     return MakeJsonResponse(http::status::method_not_allowed,
                             JsAnswer("invalidMethod", "Invalid method"),
                             CacheControl::NO_CACHE,

@@ -2,6 +2,8 @@
 
 #include <stdexcept>
 #include <string>
+#include <algorithm>
+
 namespace model {
 using namespace std::string_literals;
 
@@ -33,10 +35,13 @@ Game::SessPtr Game::GetSession(const model::Map::Id& id) {
     throw std::invalid_argument("Map"s + *id + "id not exist"s);
   }
 
-  for (const auto& sess : m_sess) {
-    if (sess->GetMap().GetId() == id) {
-      return sess;
-    }
+  auto it = std::find_if(m_sess.begin(), m_sess.end(), 
+    [&id](const auto& sess) {
+      return sess->GetMap().GetId() == id;
+    });
+
+  if (it != m_sess.end()) {
+    return *it;
   }
 
   std::chrono::milliseconds ms(static_cast<int>(m_period_loot_gen * 1000));

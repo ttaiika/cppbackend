@@ -60,7 +60,7 @@ private:
 
   std::shared_ptr<SessionBase> GetSharedThis() override { return this->shared_from_this(); }
 
-  virtual void HandleRequest(HttpRequest&& request) override;
+  void HandleRequest(HttpRequest&& request) override;
 };
 
 template <class Body, class Fields>
