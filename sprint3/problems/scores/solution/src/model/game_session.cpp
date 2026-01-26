@@ -5,45 +5,28 @@
 #include <cmath>
 #include <iostream>
 
-namespace {
+GameSession::RoadSegment GameSession::RoadSegment::FromPoints(double p1, double p2) {
+    return {std::min(p1, p2), std::max(p1, p2), (p1 + p2) / 2.0};
+}
 
-constexpr double ROAD_WIDTH = 0.8;
-constexpr double ROAD_HALF_WIDTH = ROAD_WIDTH / 2.0;
-constexpr double EPSILON = 1e-9;
+bool GameSession::RoadSegment::Contains(double point, double margin) const {
+    return point >= min - margin - EPSILON && 
+           point <= max + margin + EPSILON;
+}
 
-// Ширина объектов для коллизий
-constexpr double DOG_WIDTH = 0.6;
-constexpr double ITEM_WIDTH = 0.0; 
-constexpr double OFFICE_WIDTH = 0.5;
+int GameSession::CoordinateToIndex(double coord) {
+    return static_cast<int>(std::floor(coord));
+}
 
-// Эффективные радиусы сбора
-constexpr double ITEM_COLLECT_RADIUS = DOG_WIDTH / 2.0;  // 0.3
-constexpr double OFFICE_COLLECT_RADIUS = DOG_WIDTH / 2.0 + OFFICE_WIDTH / 2.0;  // 0.55
-
-bool IsNearlyZero(double value) {
+bool GameSession::IsNearlyZero(double value) {
     return std::abs(value) < EPSILON;
 }
 
-bool IsNearlyEqual(double a, double b) {
+bool GameSession::IsNearlyEqual(double a, double b) {
     return std::abs(a - b) < EPSILON;
 }
 
-struct RoadSegment {
-    double min;
-    double max;
-    double center;
-    
-    static RoadSegment FromPoints(double p1, double p2) {
-        return {std::min(p1, p2), std::max(p1, p2), (p1 + p2) / 2.0};
-    }
-    
-    bool Contains(double point, double margin = 0.0) const {
-        return point >= min - margin - EPSILON && 
-               point <= max + margin + EPSILON;
-    }
-};
-
-bool IsPointOnRoad(const model::Position& point, const model::Road& road) {
+bool GameSession::IsPointOnRoad(const model::Position& point, const model::Road& road) const {
     if (road.IsHorizontal()) {
         RoadSegment x_segment = RoadSegment::FromPoints(
             road.GetStart().x, road.GetEnd().x);
@@ -65,11 +48,73 @@ bool IsPointOnRoad(const model::Position& point, const model::Road& road) {
     }
 }
 
-int CoordinateToIndex(double coord) {
-    return static_cast<int>(std::floor(coord));
+void GameSession::AddRoadToIndex(const model::Road& road, RoadIndex& index, 
+                                 int primary_coord, const RoadSegment& segment) {
+    // Добавляем дорогу в индекс по основной координате
+    index.by_primary_coord[primary_coord].push_back(&road);
+    
+    // Добавляем дорогу в индекс по вторичным координатам
+    int min_secondary_index = CoordinateToIndex(segment.min - ROAD_HALF_WIDTH);
+    int max_secondary_index = CoordinateToIndex(segment.max + ROAD_HALF_WIDTH);
+    
+    for (int secondary = min_secondary_index; secondary <= max_secondary_index; ++secondary) {
+        index.by_secondary_coord[secondary].push_back(&road);
+    }
 }
 
-} // namespace
+const model::Road* GameSession::FindTransitionRoad(int coord_index,
+                                                   double target_coord,
+                                                   const RoadIndex& roads_index,
+                                                   std::function<RoadSegment(const model::Road*)> get_segment) const {
+    if (auto it = roads_index.by_primary_coord.find(coord_index);
+        it != roads_index.by_primary_coord.end()) {
+        for (const auto* road : it->second) {
+            RoadSegment segment = get_segment(road);
+            if (segment.Contains(target_coord, ROAD_HALF_WIDTH)) {
+                return road;
+            }
+        }
+    }
+    return nullptr;
+}
+
+void GameSession::StopDogAtRoadBoundary(const model::Road* road, 
+                                       model::Position& pos, 
+                                       model::Speed& speed) const {
+    if (road->IsHorizontal()) {
+        RoadSegment x_segment = RoadSegment::FromPoints(
+            road->GetStart().x, road->GetEnd().x);
+        
+        if (!IsNearlyZero(speed.x)) {
+            pos.x = (speed.x > 0) ? 
+                x_segment.max + ROAD_HALF_WIDTH : 
+                x_segment.min - ROAD_HALF_WIDTH;
+            speed.x = 0.0;
+        }
+        if (!IsNearlyZero(speed.y)) {
+            pos.y = (speed.y > 0) ? 
+                road->GetStart().y + ROAD_HALF_WIDTH :
+                road->GetStart().y - ROAD_HALF_WIDTH;
+            speed.y = 0.0;
+        }
+    } else {
+        RoadSegment y_segment = RoadSegment::FromPoints(
+            road->GetStart().y, road->GetEnd().y);
+        
+        if (!IsNearlyZero(speed.y)) {
+            pos.y = (speed.y > 0) ?
+                y_segment.max + ROAD_HALF_WIDTH :
+                y_segment.min - ROAD_HALF_WIDTH;
+            speed.y = 0.0;
+        }
+        if (!IsNearlyZero(speed.x)) {
+            pos.x = (speed.x > 0) ?
+                road->GetStart().x + ROAD_HALF_WIDTH :
+                road->GetStart().x - ROAD_HALF_WIDTH;
+            speed.x = 0.0;
+        }
+    }
+}
 
 GameSession::ItemCollisionProvider::ItemCollisionProvider(
     const std::vector<DogMovement>& movements,
@@ -162,28 +207,14 @@ void GameSession::BuildRoadIndices() {
     for (const auto& road : map_->GetRoads()) {
         if (road.IsHorizontal()) {
             int y_index = CoordinateToIndex(road.GetStart().y);
-            horizontal_roads_.by_primary_coord[y_index].push_back(&road);
-            
             RoadSegment x_segment = RoadSegment::FromPoints(
                 road.GetStart().x, road.GetEnd().x);
-            int min_x_index = CoordinateToIndex(x_segment.min - ROAD_HALF_WIDTH);
-            int max_x_index = CoordinateToIndex(x_segment.max + ROAD_HALF_WIDTH);
-            
-            for (int x = min_x_index; x <= max_x_index; ++x) {
-                horizontal_roads_.by_secondary_coord[x].push_back(&road);
-            }
+            AddRoadToIndex(road, horizontal_roads_, y_index, x_segment);
         } else {
             int x_index = CoordinateToIndex(road.GetStart().x);
-            vertical_roads_.by_primary_coord[x_index].push_back(&road);
-            
             RoadSegment y_segment = RoadSegment::FromPoints(
                 road.GetStart().y, road.GetEnd().y);
-            int min_y_index = CoordinateToIndex(y_segment.min - ROAD_HALF_WIDTH);
-            int max_y_index = CoordinateToIndex(y_segment.max + ROAD_HALF_WIDTH);
-            
-            for (int y = min_y_index; y <= max_y_index; ++y) {
-                vertical_roads_.by_secondary_coord[y].push_back(&road);
-            }
+            AddRoadToIndex(road, vertical_roads_, x_index, y_segment);
         }
     }
 }
@@ -197,6 +228,10 @@ Id GameSession::GetMapId() const {
 }
 
 model::Dog& GameSession::AddDog(std::shared_ptr<model::Dog> dog) {
+    if (!dog) {
+        throw std::invalid_argument("Dog cannot be nullptr");
+    }
+    
     dogs_.push_back(dog);
     
     if (loot_objects_.size() < GetLootersCount()) {
@@ -412,31 +447,21 @@ void GameSession::MoveDog(model::Dog& dog, double dt) {
         if (current_road->IsHorizontal() && !IsNearlyZero(speed.y)) {
             // Ищем вертикальную дорогу для перехода
             int x_index = CoordinateToIndex(pos.x);
-            if (auto it = vertical_roads_.by_primary_coord.find(x_index);
-                it != vertical_roads_.by_primary_coord.end()) {
-                for (const auto* road : it->second) {
-                    RoadSegment y_segment = RoadSegment::FromPoints(
-                        road->GetStart().y, road->GetEnd().y);
-                    if (y_segment.Contains(target_pos.y, ROAD_HALF_WIDTH)) {
-                        transition_road = road;
-                        break;
-                    }
+            transition_road = FindTransitionRoad(
+                x_index, target_pos.y, vertical_roads_,
+                [](const model::Road* road) {
+                    return RoadSegment::FromPoints(road->GetStart().y, road->GetEnd().y);
                 }
-            }
+            );
         } else if (!current_road->IsHorizontal() && !IsNearlyZero(speed.x)) {
             // Ищем горизонтальную дорогу для перехода
             int y_index = CoordinateToIndex(pos.y);
-            if (auto it = horizontal_roads_.by_primary_coord.find(y_index);
-                it != horizontal_roads_.by_primary_coord.end()) {
-                for (const auto* road : it->second) {
-                    RoadSegment x_segment = RoadSegment::FromPoints(
-                        road->GetStart().x, road->GetEnd().x);
-                    if (x_segment.Contains(target_pos.x, ROAD_HALF_WIDTH)) {
-                        transition_road = road;
-                        break;
-                    }
+            transition_road = FindTransitionRoad(
+                y_index, target_pos.x, horizontal_roads_,
+                [](const model::Road* road) {
+                    return RoadSegment::FromPoints(road->GetStart().x, road->GetEnd().x);
                 }
-            }
+            );
         }
         
         if (transition_road) {
@@ -445,39 +470,7 @@ void GameSession::MoveDog(model::Dog& dog, double dt) {
             pos = target_pos;
         } else {
             // Останавливаемся у границы текущей дороги
-            if (current_road->IsHorizontal()) {
-                RoadSegment x_segment = RoadSegment::FromPoints(
-                    current_road->GetStart().x, current_road->GetEnd().x);
-                
-                if (!IsNearlyZero(speed.x)) {
-                    pos.x = (speed.x > 0) ? 
-                        x_segment.max + ROAD_HALF_WIDTH : 
-                        x_segment.min - ROAD_HALF_WIDTH;
-                    speed.x = 0.0;
-                }
-                if (!IsNearlyZero(speed.y)) {
-                    pos.y = (speed.y > 0) ? 
-                        current_road->GetStart().y + ROAD_HALF_WIDTH :
-                        current_road->GetStart().y - ROAD_HALF_WIDTH;
-                    speed.y = 0.0;
-                }
-            } else {
-                RoadSegment y_segment = RoadSegment::FromPoints(
-                    current_road->GetStart().y, current_road->GetEnd().y);
-                
-                if (!IsNearlyZero(speed.y)) {
-                    pos.y = (speed.y > 0) ?
-                        y_segment.max + ROAD_HALF_WIDTH :
-                        y_segment.min - ROAD_HALF_WIDTH;
-                    speed.y = 0.0;
-                }
-                if (!IsNearlyZero(speed.x)) {
-                    pos.x = (speed.x > 0) ?
-                        current_road->GetStart().x + ROAD_HALF_WIDTH :
-                        current_road->GetStart().x - ROAD_HALF_WIDTH;
-                    speed.x = 0.0;
-                }
-            }
+            StopDogAtRoadBoundary(current_road, pos, speed);
         }
     }
     
@@ -595,13 +588,12 @@ void GameSession::ProcessCollisions(const std::vector<DogMovement>& movements) {
     all_events.insert(all_events.end(), item_events.begin(), item_events.end());
     all_events.insert(all_events.end(), office_events.begin(), office_events.end());
     
-    // Сортируем по времени (хронологический порядок)
+    // Сортируем по времени 
     std::sort(all_events.begin(), all_events.end(),
         [](const CollisionEvent& a, const CollisionEvent& b) {
             return a.time < b.time;
         });
     
-    // Обрабатываем события в порядке возрастания времени
     for (const auto& event : all_events) {
         if (!event.dog) continue;
         
@@ -642,6 +634,7 @@ void GameSession::Tick(double dt) {
 
     // Двигаем собак (обновляем их позиции)
     for (auto& dog : dogs_) {
+        if (!dog) continue;  
         MoveDog(*dog, dt);
     }
 
